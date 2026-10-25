@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Seis barras: o equalizador de 6 faixas -->
+    <path android:fillColor="#22D3EE" android:pathData="M27,58 h6 a1.5,1.5 0 0 1 1.5,1.5 v14 a1.5,1.5 0 0 1 -1.5,1.5 h-6 a1.5,1.5 0 0 1 -1.5,-1.5 v-14 a1.5,1.5 0 0 1 1.5,-1.5 z" />
+    <path android:fillColor="#38BDF8" android:pathData="M37,46 h6 a1.5,1.5 0 0 1 1.5,1.5 v26 a1.5,1.5 0 0 1 -1.5,1.5 h-6 a1.5,1.5 0 0 1 -1.5,-1.5 v-26 a1.5,1.5 0 0 1 1.5,-1.5 z" />
+    <path android:fillColor="#60A5FA" android:pathData="M47,34 h6 a1.5,1.5 0 0 1 1.5,1.5 v38 a1.5,1.5 0 0 1 -1.5,1.5 h-6 a1.5,1.5 0 0 1 -1.5,-1.5 v-38 a1.5,1.5 0 0 1 1.5,-1.5 z" />
+    <path android:fillColor="#818CF8" android:pathData="M57,42 h6 a1.5,1.5 0 0 1 1.5,1.5 v30 a1.5,1.5 0 0 1 -1.5,1.5 h-6 a1.5,1.5 0 0 1 -1.5,-1.5 v-30 a1.5,1.5 0 0 1 1.5,-1.5 z" />
+    <path android:fillColor="#A78BFA" android:pathData="M67,52 h6 a1.5,1.5 0 0 1 1.5,1.5 v20 a1.5,1.5 0 0 1 -1.5,1.5 h-6 a1.5,1.5 0 0 1 -1.5,-1.5 v-20 a1.5,1.5 0 0 1 1.5,-1.5 z" />
+    <path android:fillColor="#C084FC" android:pathData="M77,62 h6 a1.5,1.5 0 0 1 1.5,1.5 v10 a1.5,1.5 0 0 1 -1.5,1.5 h-6 a1.5,1.5 0 0 1 -1.5,-1.5 v-10 a1.5,1.5 0 0 1 1.5,-1.5 z" />
+</vector>
