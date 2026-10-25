@@ -88,12 +88,12 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onClose) {
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Fechar", modifier = Modifier.size(32.dp))
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Fechar", modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onBackground)
             }
             Spacer(Modifier.weight(1f))
             Box {
                 IconButton(onClick = { skinMenu = true }) {
-                    Icon(Icons.Filled.Palette, contentDescription = "Trocar o visual do player")
+                    Icon(Icons.Filled.Palette, contentDescription = "Trocar o visual do player", tint = MaterialTheme.colorScheme.onBackground)
                 }
                 DropdownMenu(expanded = skinMenu, onDismissRequest = { skinMenu = false }) {
                     PlayerSkin.entries.forEach { option ->
@@ -127,6 +127,7 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
         Text(
             ui.title.ifEmpty { "Nada tocando" },
             style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center
         )
         if (ui.artist.isNotEmpty()) {
@@ -154,8 +155,8 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(formatTime(position.toLong()), style = MaterialTheme.typography.bodySmall)
-            Text(formatTime(ui.durationMs), style = MaterialTheme.typography.bodySmall)
+            Text(formatTime(position.toLong()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatTime(ui.durationMs), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         Spacer(Modifier.height(16.dp))
@@ -172,7 +173,7 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
                 )
             }
             IconButton(onClick = { controller.previous() }, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Filled.SkipPrevious, contentDescription = "Anterior", modifier = Modifier.size(36.dp))
+                Icon(Icons.Filled.SkipPrevious, contentDescription = "Anterior", modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onBackground)
             }
             Box(
                 Modifier
@@ -190,7 +191,7 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
                 )
             }
             IconButton(onClick = { controller.next() }, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Filled.SkipNext, contentDescription = "Próxima", modifier = Modifier.size(36.dp))
+                Icon(Icons.Filled.SkipNext, contentDescription = "Próxima", modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onBackground)
             }
             IconButton(onClick = { controller.cycleRepeat() }) {
                 Icon(
@@ -242,11 +243,12 @@ fun MiniPlayer(controller: PlayerController, onOpen: () -> Unit) {
             IconButton(onClick = { controller.togglePlay() }) {
                 Icon(
                     if (ui.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (ui.isPlaying) "Pausar" else "Tocar"
+                    contentDescription = if (ui.isPlaying) "Pausar" else "Tocar",
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
             IconButton(onClick = { controller.next() }) {
-                Icon(Icons.Filled.SkipNext, contentDescription = "Próxima")
+                Icon(Icons.Filled.SkipNext, contentDescription = "Próxima", tint = MaterialTheme.colorScheme.onSurface)
             }
         }
     }
