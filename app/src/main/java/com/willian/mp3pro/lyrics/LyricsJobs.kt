@@ -56,7 +56,7 @@ object LyricsJobs {
         job?.cancel()
     }
 
-    fun start(context: Context, mediaId: String) {
+    fun start(context: Context, mediaId: String, title: String = "", artist: String = "", durationMs: Long = 0L) {
         if (mediaId.isEmpty() || _state.value.running) return
         val app = context.applicationContext
         _state.value = LyricsJobState(mediaId, LyricsStage.FETCH, 0, "Preparando…")
@@ -66,7 +66,7 @@ object LyricsJobs {
             lock.acquire(40 * 60 * 1000L)
             var temp: File? = null
             try {
-                generate(app, mediaId, { ensureActive() }) { temp = it }
+                generate(app, mediaId, title, artist, durationMs, { ensureActive() }) { temp = it }
                 _state.value = LyricsJobState()
             } catch (e: CancellationException) {
                 _state.value = LyricsJobState()
@@ -82,7 +82,25 @@ object LyricsJobs {
         }
     }
 
-    private fun generate(context: Context, mediaId: String, active: () -> Unit, onTemp: (File) -> Unit) {
+    private fun generate(
+        context: Context, mediaId: String, title: String, artist: String, durationMs: Long,
+        active: () -> Unit, onTemp: (File) -> Unit
+    ) {
+        // 0) letra pronta no LRCLIB: rápido e quase sempre mais correta
+        _state.value = LyricsJobState(mediaId, LyricsStage.FETCH, 0, "Buscando a letra no LRCLIB…")
+        val ready = LrcLib.fetch(title, artist, durationMs)
+        active()
+        if (ready != null) {
+            LyricsStore.save(mediaId, ready)
+            return
+        }
+        if (!WhisperEngine.AVAILABLE) {
+            throw IOException(
+                "Não achei a letra desta música no LRCLIB. Confira se o nome do arquivo " +
+                    "está como “Título - Artista”."
+            )
+        }
+
         val size = WhisperSize.fromId(AppPrefs.whisperSize(context))
         val lang = AppPrefs.lyricsLanguage(context).let { if (it == "auto") "" else it }
 

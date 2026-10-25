@@ -42,6 +42,7 @@ import com.willian.mp3pro.data.AppPrefs
 import com.willian.mp3pro.lyrics.LyricsJobs
 import com.willian.mp3pro.lyrics.LyricsStage
 import com.willian.mp3pro.lyrics.LyricsStore
+import com.willian.mp3pro.lyrics.WhisperEngine
 import com.willian.mp3pro.lyrics.WhisperModel
 import com.willian.mp3pro.lyrics.WhisperSize
 import com.willian.mp3pro.player.PlayerUi
@@ -100,7 +101,7 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     TextButton(onClick = { LyricsStore.delete(ui.mediaId) }) { Text("Apagar letra") }
-                    TextButton(onClick = { options = true }) { Text("Opções da IA") }
+                    TextButton(onClick = { options = true }) { Text("Opções") }
                 }
             }
 
@@ -137,8 +138,9 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "A IA do próprio celular escuta a música e escreve a letra, com os tempos. " +
-                            "Funciona sem internet depois que o modelo é baixado.",
+                        "O app busca a letra sincronizada no LRCLIB (serviço gratuito) e guarda no " +
+                            "celular. Depois disso ela abre mesmo sem internet. Funciona melhor quando o " +
+                            "arquivo se chama “Título - Artista”.",
                         style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -148,11 +150,12 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
                     enabled = ui.mediaId.isNotEmpty(),
                     onClick = {
                         val size = WhisperSize.fromId(AppPrefs.whisperSize(context))
-                        if (WhisperModel.isReady(context, size)) LyricsJobs.start(context, ui.mediaId)
-                        else confirmDownload = true
+                        if (!WhisperEngine.AVAILABLE || WhisperModel.isReady(context, size)) {
+                            LyricsJobs.start(context, ui.mediaId, ui.title, ui.artist, ui.durationMs)
+                        } else confirmDownload = true
                     }
-                ) { Text(if (mine && job.stage == LyricsStage.FAILED) "Tentar de novo" else "Gerar letra com IA") }
-                TextButton(onClick = { options = true }) { Text("Opções da IA") }
+                ) { Text(if (mine && job.stage == LyricsStage.FAILED) "Tentar de novo" else "Buscar letra") }
+                TextButton(onClick = { options = true }) { Text("Opções") }
                 Spacer(Modifier.weight(1f))
             }
         }
@@ -173,7 +176,7 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
             confirmButton = {
                 TextButton(onClick = {
                     confirmDownload = false
-                    LyricsJobs.start(context, ui.mediaId)
+                    LyricsJobs.start(context, ui.mediaId, ui.title, ui.artist, ui.durationMs)
                 }) { Text("Baixar e gerar") }
             },
             dismissButton = { TextButton(onClick = { confirmDownload = false }) { Text("Agora não") } }
@@ -199,7 +202,7 @@ private fun LyricsOptionsDialog(onDismiss: () -> Unit) {
         title = { Text("Letra por IA") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Idioma da música", style = MaterialTheme.typography.labelLarge)
+                if (WhisperEngine.AVAILABLE) Text("Idioma da música", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     languages.forEach { (code, label) ->
                         FilterChip(

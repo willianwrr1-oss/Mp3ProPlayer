@@ -1,54 +1,31 @@
 package com.willian.mp3pro.lyrics
 
-import com.k2fsa.sherpa.onnx.OfflineModelConfig
-import com.k2fsa.sherpa.onnx.OfflineRecognizer
-import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
-import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 import java.io.File
+import java.io.IOException
 
 /**
- * Envolve o reconhecedor de voz (Whisper, via sherpa-onnx). É o único arquivo do app
- * que conhece essa biblioteca.
- *
- * [language]: "" detecta sozinho; ou "pt", "en", "es"...
+ * Ponto de ligação com o reconhecedor de voz (Whisper). A biblioteca nativa
+ * (sherpa-onnx) não está no Maven Central, então por enquanto este motor fica
+ * desligado ([AVAILABLE] = false) e a letra vem do LRCLIB. Quando a biblioteca
+ * for incluída ao projeto, só este arquivo precisa mudar.
  */
 class WhisperEngine(
-    encoder: File,
-    decoder: File,
-    tokens: File,
-    language: String
+    @Suppress("UNUSED_PARAMETER") encoder: File,
+    @Suppress("UNUSED_PARAMETER") decoder: File,
+    @Suppress("UNUSED_PARAMETER") tokens: File,
+    @Suppress("UNUSED_PARAMETER") language: String
 ) : AutoCloseable {
 
-    private val recognizer: OfflineRecognizer
+    companion object {
+        const val AVAILABLE = false
+    }
 
     init {
-        val whisper = OfflineWhisperModelConfig(
-            encoder = encoder.absolutePath,
-            decoder = decoder.absolutePath,
-            language = language,
-            task = "transcribe"
-        )
-        val model = OfflineModelConfig(
-            whisper = whisper,
-            tokens = tokens.absolutePath,
-            numThreads = Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
-        )
-        recognizer = OfflineRecognizer(config = OfflineRecognizerConfig(modelConfig = model))
+        if (!AVAILABLE) throw IOException("A transcrição por IA ainda não está disponível nesta versão.")
     }
 
-    /** Transcreve um trecho de até ~30 s (mono, 16 kHz). */
-    fun transcribe(samples: FloatArray): String {
-        val stream = recognizer.createStream()
-        try {
-            stream.acceptWaveform(samples, AudioDecoder.TARGET_RATE)
-            recognizer.decode(stream)
-            return recognizer.getResult(stream).text.trim()
-        } finally {
-            stream.release()
-        }
-    }
+    fun transcribe(@Suppress("UNUSED_PARAMETER") samples: FloatArray): String =
+        throw IOException("A transcrição por IA ainda não está disponível nesta versão.")
 
-    override fun close() {
-        recognizer.release()
-    }
+    override fun close() {}
 }

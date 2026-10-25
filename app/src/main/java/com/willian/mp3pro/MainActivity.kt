@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.willian.mp3pro.data.AppPrefs
 import com.willian.mp3pro.lyrics.LyricsJobs
 import com.willian.mp3pro.lyrics.LyricsStore
+import com.willian.mp3pro.lyrics.WhisperEngine
 import com.willian.mp3pro.lyrics.WhisperModel
 import com.willian.mp3pro.lyrics.WhisperSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -83,9 +84,10 @@ private fun AppRoot(vm: MainViewModel) {
     LaunchedEffect(playing.mediaId) {
         val id = playing.mediaId
         if (id.isNotEmpty() && AppPrefs.autoLyrics(context) && !LyricsStore.has(id) &&
-            WhisperModel.isReady(context, WhisperSize.fromId(AppPrefs.whisperSize(context)))
+            (!WhisperEngine.AVAILABLE ||
+                WhisperModel.isReady(context, WhisperSize.fromId(AppPrefs.whisperSize(context))))
         ) {
-            LyricsJobs.start(context, id)
+            LyricsJobs.start(context, id, playing.title, playing.artist, playing.durationMs)
         }
     }
 

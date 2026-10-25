@@ -58,18 +58,16 @@ Por ser um recurso não documentado, a Microsoft pode mudá-lo no futuro. O plan
 
 Os links de download do OneDrive expiram em cerca de uma hora, por isso o app pede um link novo na hora de tocar ou baixar cada música.
 
-## Letra por IA (Whisper no celular)
+## Letra da música
 
 No player, o ícone de letra (ao lado do de tema) troca a imagem do tocador pelo painel de letra.
 
-1. Toque em "Gerar letra com IA". Na primeira vez o app baixa o modelo (115 MB no "Leve" ou 200 MB no "Equilibrado"), do repositório oficial do sherpa-onnx no GitHub. Use Wi-Fi.
-2. O app lê o áudio, transcreve em trechos de cerca de 12 s e salva a letra, com os tempos, no celular. Leva alguns minutos por música; mantenha o app aberto.
-3. Nas próximas vezes a letra abre na hora e a linha atual fica em destaque. Tocar numa linha pula para esse ponto da música.
-4. "Opções da IA": idioma (automático, português, inglês, espanhol), tamanho do modelo e "gerar sozinha na primeira vez" (só com o modelo já baixado).
+1. Toque em "Buscar letra". O app procura a letra sincronizada no LRCLIB (lrclib.net, gratuito, sem chave) pelo título, artista e duração, e salva no celular.
+2. Nas próximas vezes a letra abre na hora, mesmo sem internet. A linha atual fica em destaque e rola sozinha; tocar numa linha pula para esse ponto.
+3. Funciona melhor com arquivos nomeados "Título - Artista".
+4. "Opções": ligue "Gerar sozinha na primeira vez" para buscar a letra automaticamente quando a música tocar.
 
-Limites: música cantada com muito instrumento gera erros; escolher o idioma certo ajuda. Instrumentais ficam sem letra. Só celulares de 64 bits.
-
-Se o build falhar por causa da dependência `sherpa-onnx-android`, troque `1.+` em `app/build.gradle.kts` pela versão mais nova listada em central.sonatype.com.
+A transcrição por IA (Whisper) está preparada no código (`lyrics/`), mas desligada: a biblioteca sherpa-onnx não existe no Maven Central e precisa ser incluída de outro modo (`WhisperEngine.AVAILABLE`).
 
 ## Android Auto
 
