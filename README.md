@@ -5,6 +5,8 @@ Player de MP3 para Android 13 ou superior que toca a pasta do OneDrive compartil
 ## O que o app faz
 
 - Lista as músicas da pasta do OneDrive e navega por subpastas, se você criar alguma no futuro.
+- Aba "Celular": encontra as músicas do aparelho (memória interna e cartão SD), mostra as pastas para você navegar e toca uma pasta inteira, com subpastas. Pede a permissão "Música e áudio" na primeira vez.
+- Toca mp3, m4a, aac, flac, wav, ogg, opus, amr, mka, weba, ac3, eac3 e 3gp. Formatos que o Android não decodifica, como wma e midi, não aparecem.
 - Toca em segundo plano, com notificação, controles na tela de bloqueio e fones Bluetooth.
 - Fila com aleatório e repetição (tudo / uma música).
 - Baixa músicas (uma a uma ou a pasta inteira) para ouvir sem internet; a aba "Baixadas" funciona sem conexão.
@@ -23,6 +25,14 @@ Os efeitos são do próprio app e não usam o nome nem o algoritmo SRS WOW, que 
 6. Descompacte esse arquivo, passe o `.apk` para o celular e instale (permita "instalar apps desconhecidos" quando o Android pedir).
 
 Confira se o arquivo `.github/workflows/build-apk.yml` aparece no repositório; sem ele a aba Actions não tem o fluxo.
+
+## Atualizar o app por cima
+
+O projeto traz uma chave de assinatura fixa (`app/mp3pro.jks`), e o número da versão sobe sozinho a cada compilação no GitHub. Assim, os próximos APKs instalam por cima do anterior, mantendo os ajustes do equalizador e as músicas baixadas.
+
+Na primeira vez com esta chave, desinstale a versão antiga do celular (ela foi assinada com outra chave) e instale a nova. Depois disso, é só instalar por cima.
+
+A chave fica dentro do repositório e serve apenas para instalar o app direto no seu celular. Ela não serve para publicar na Play Store.
 
 ## Link da pasta do OneDrive
 

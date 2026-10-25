@@ -42,7 +42,7 @@ class OneDriveClient private constructor(val shareUrl: String) {
     companion object {
         const val SCHEME = "onedrive"
 
-        private val AUDIO_EXT = setOf("mp3", "m4a", "aac", "flac", "wav", "ogg", "opus")
+        private val AUDIO_EXT = AudioFormats.extensions
         private const val BADGER_APP_ID = "1141147648"
         private const val BADGER_APP_UUID = "5cbed6ac-a083-4e14-b191-b4ba07653de2"
         private const val BADGER_URL = "https://api-badgerp.svc.ms/v1.0/token"

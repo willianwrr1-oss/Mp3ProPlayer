@@ -12,8 +12,21 @@ android {
         applicationId = "com.willian.mp3pro"
         minSdk = 33
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        // No GitHub, o número da execução sobe a cada compilação: o Android só atualiza
+        // por cima quando o versionCode é maior ou igual ao instalado.
+        versionCode = maxOf(2, System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 2)
+        versionName = "1.1.0"
+    }
+
+    signingConfigs {
+        // Chave fixa e guardada no projeto: sem ela, cada compilação no GitHub gera uma
+        // assinatura nova e o Android recusa instalar por cima da versão anterior.
+        create("fixa") {
+            storeFile = file("mp3pro.jks")
+            storePassword = "mp3pro-app-2026"
+            keyAlias = "mp3pro"
+            keyPassword = "mp3pro-app-2026"
+        }
     }
 
     buildTypes {
@@ -23,8 +36,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Assina com a chave de debug para o APK ser instalável direto.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("fixa")
         }
     }
 

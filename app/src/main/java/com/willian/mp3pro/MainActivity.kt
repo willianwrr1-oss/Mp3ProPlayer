@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -32,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.willian.mp3pro.ui.DownloadsScreen
 import com.willian.mp3pro.ui.EqualizerScreen
 import com.willian.mp3pro.ui.LibraryScreen
+import com.willian.mp3pro.ui.LocalScreen
 import com.willian.mp3pro.ui.MiniPlayer
 import com.willian.mp3pro.ui.Mp3ProTheme
 import com.willian.mp3pro.ui.PlayerScreen
@@ -75,7 +77,7 @@ private fun AppRoot(vm: MainViewModel) {
                         NavigationBarItem(
                             selected = tab == 0, onClick = { tab = 0 },
                             icon = { Icon(Icons.Filled.LibraryMusic, contentDescription = null) },
-                            label = { Text("Biblioteca") }
+                            label = { Text("OneDrive") }
                         )
                         NavigationBarItem(
                             selected = tab == 1, onClick = { tab = 1 },
@@ -84,6 +86,11 @@ private fun AppRoot(vm: MainViewModel) {
                         )
                         NavigationBarItem(
                             selected = tab == 2, onClick = { tab = 2 },
+                            icon = { Icon(Icons.Filled.PhoneAndroid, contentDescription = null) },
+                            label = { Text("Celular") }
+                        )
+                        NavigationBarItem(
+                            selected = tab == 3, onClick = { tab = 3 },
                             icon = { Icon(Icons.Filled.GraphicEq, contentDescription = null) },
                             label = { Text("Equalizador") }
                         )
@@ -99,6 +106,7 @@ private fun AppRoot(vm: MainViewModel) {
                         onShowDownloads = { tab = 1 }
                     )
                     1 -> DownloadsScreen(vm)
+                    2 -> LocalScreen(vm)
                     else -> EqualizerScreen()
                 }
             }

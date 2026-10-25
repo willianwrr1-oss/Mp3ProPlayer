@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.willian.mp3pro.data.AppPrefs
 import com.willian.mp3pro.data.DownloadWorker
+import com.willian.mp3pro.data.LocalLibrary
+import com.willian.mp3pro.data.LocalTrack
 import com.willian.mp3pro.data.OneDriveClient
 import com.willian.mp3pro.data.OneDriveException
 import com.willian.mp3pro.data.Offline
@@ -25,6 +27,18 @@ data class LibraryUi(
     val details: List<String> = emptyList()
 )
 
+data class LocalFolder(val name: String, val dir: String, val count: Int)
+
+data class LocalUi(
+    val dir: String = "",
+    val folders: List<LocalFolder> = emptyList(),
+    val tracks: List<RemoteEntry> = emptyList(),
+    val loading: Boolean = false,
+    val loaded: Boolean = false,
+    val total: Int = 0,
+    val error: String? = null
+)
+
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val player = PlayerController(app)
@@ -36,6 +50,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val library: StateFlow<LibraryUi> = _library.asStateFlow()
 
     private var loadJob: Job? = null
+
+    private val _local = MutableStateFlow(LocalUi())
+    val local: StateFlow<LocalUi> = _local.asStateFlow()
+    private var allLocal: List<LocalTrack> = emptyList()
 
     init {
         player.connect()
@@ -95,6 +113,60 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun removeDownload(path: String) = Offline.remove(path)
+
+    // ------------------------------------------------------------------ músicas do celular
+
+    /** Procura as músicas do aparelho (precisa da permissão de áudio já concedida). */
+    fun scanLocal() {
+        if (_local.value.loading) return
+        _local.value = _local.value.copy(loading = true, error = null)
+        viewModelScope.launch {
+            try {
+                allLocal = LocalLibrary.scan(getApplication())
+                showLocal(_local.value.dir, total = allLocal.size)
+            } catch (e: Exception) {
+                _local.value = _local.value.copy(
+                    loading = false,
+                    error = "Não foi possível ler as músicas do celular."
+                )
+            }
+        }
+    }
+
+    fun openLocalFolder(folder: LocalFolder) = showLocal(folder.dir)
+
+    fun localUp() {
+        val atual = _local.value.dir
+        if (atual.isEmpty()) return
+        val pai = atual.trimEnd('/').substringBeforeLast('/', "")
+        showLocal(if (pai.isEmpty()) "" else "$pai/")
+    }
+
+    private fun showLocal(dir: String, total: Int = allLocal.size) {
+        val aqui = allLocal.filter { it.dir == dir }
+        val subpastas = allLocal
+            .filter { it.dir != dir && it.dir.startsWith(dir) }
+            .groupBy { it.dir.removePrefix(dir).substringBefore('/') }
+            .map { (nome, lista) -> LocalFolder(nome, "$dir$nome/", lista.size) }
+            .sortedBy { it.name.lowercase() }
+        _local.value = LocalUi(
+            dir = dir,
+            folders = subpastas,
+            tracks = aqui.map { it.toEntry() },
+            loading = false,
+            loaded = true,
+            total = total
+        )
+    }
+
+    /** Toca todas as músicas da pasta [dir], incluindo as subpastas. */
+    fun playLocalFolder(dir: String) {
+        val fila = allLocal
+            .filter { it.dir.startsWith(dir) }
+            .sortedWith(compareBy({ it.dir.lowercase() }, { it.name.lowercase() }))
+            .map { it.toEntry() }
+        if (fila.isNotEmpty()) player.playQueue(fila, 0)
+    }
 
     fun saveShareUrl(url: String) {
         val limpo = url.trim()
