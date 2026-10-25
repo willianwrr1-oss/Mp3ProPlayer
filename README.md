@@ -62,10 +62,10 @@ Os links de download do OneDrive expiram em cerca de uma hora, por isso o app pe
 
 No player, o ícone de letra (ao lado do de tema) troca a imagem do tocador pelo painel de letra.
 
-1. Toque em "Buscar letra". O app procura a letra sincronizada no LRCLIB (lrclib.net, gratuito, sem chave) pelo título, artista e duração, e salva no celular.
-2. Nas próximas vezes a letra abre na hora, mesmo sem internet. A linha atual fica em destaque e rola sozinha; tocar numa linha pula para esse ponto.
+1. Sozinho: na primeira vez que uma música toca (com o app aberto), o app já busca e salva a letra. Ou toque em "Buscar letra". O app procura a letra sincronizada no LRCLIB (lrclib.net, gratuito, sem chave) pelo título, artista e duração, e salva no celular.
+2. Nas próximas vezes a letra abre na hora, mesmo sem internet. A letra inteira fica na tela, com a linha atual em destaque; "Seguir a música" faz a lista acompanhar sozinha, e tocar numa linha pula para esse ponto.
 3. Funciona melhor com arquivos nomeados "Título - Artista".
-4. "Opções": ligue "Gerar sozinha na primeira vez" para buscar a letra automaticamente quando a música tocar.
+4. "Opções": desligue "Buscar a letra automaticamente" se preferir buscar só quando tocar no botão.
 
 A transcrição por IA (Whisper) está preparada no código (`lyrics/`), mas desligada: a biblioteca sherpa-onnx não existe no Maven Central e precisa ser incluída de outro modo (`WhisperEngine.AVAILABLE`).
 

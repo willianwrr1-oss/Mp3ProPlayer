@@ -60,9 +60,9 @@ object AppPrefs {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putString(KEY_LANG, code).apply()
     }
 
-    /** Gerar a letra sozinho na primeira vez que a música tocar (só com o modelo já baixado). */
+    /** Buscar e salvar a letra sozinho na primeira vez que a música tocar (ligado por padrão). */
     fun autoLyrics(context: Context): Boolean =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_LYRICS, false)
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_LYRICS, true)
 
     fun setAutoLyrics(context: Context, value: Boolean) {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_AUTO_LYRICS, value).apply()

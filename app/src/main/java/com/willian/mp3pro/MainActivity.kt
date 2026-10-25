@@ -78,16 +78,21 @@ private fun AppRoot(vm: MainViewModel) {
     }
 
     // Letra automática: na primeira vez que uma música toca, se o usuário ligou a opção
-    // e o modelo já está no celular.
+    // (ligada por padrão): busca no LRCLIB e salva no celular.
     val context = LocalContext.current
     val playing by vm.player.ui.collectAsStateWithLifecycle()
-    LaunchedEffect(playing.mediaId) {
+    val tried = remember { mutableSetOf<String>() } // não insiste em músicas sem letra
+    LaunchedEffect(playing.mediaId, playing.title, playing.durationMs > 0) {
         val id = playing.mediaId
-        if (id.isNotEmpty() && AppPrefs.autoLyrics(context) && !LyricsStore.has(id) &&
+        if (id.isNotEmpty() && playing.durationMs > 0 && id !in tried &&
+            AppPrefs.autoLyrics(context) && !LyricsStore.has(id) &&
             (!WhisperEngine.AVAILABLE ||
                 WhisperModel.isReady(context, WhisperSize.fromId(AppPrefs.whisperSize(context))))
         ) {
-            LyricsJobs.start(context, id, playing.title, playing.artist, playing.durationMs)
+            if (!LyricsJobs.state.value.running) {
+                tried.add(id)
+                LyricsJobs.start(context, id, playing.title, playing.artist, playing.durationMs)
+            }
         }
     }
 

@@ -61,9 +61,10 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
     var confirmDownload by remember { mutableStateOf(false) }
 
     val shape = RoundedCornerShape(20.dp)
+    var follow by remember { mutableStateOf(false) }
     Column(
         modifier
-            .aspectRatio(1f)
+            .then(if (lines != null) Modifier.height(440.dp) else Modifier.aspectRatio(1f))
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(16.dp),
@@ -72,16 +73,17 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
         val mine = job.mediaId == ui.mediaId
         when {
             lines != null -> {
+                // A letra inteira fica na tela; a linha atual só ganha destaque.
                 val position = ui.positionMs + 250
                 val current = lines.indexOfLast { it.timeMs <= position }.coerceAtLeast(0)
                 val listState = rememberLazyListState()
-                LaunchedEffect(current, lines) {
-                    listState.animateScrollToItem((current - 2).coerceAtLeast(0))
+                LaunchedEffect(current, lines, follow) {
+                    if (follow) listState.animateScrollToItem((current - 3).coerceAtLeast(0))
                 }
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     itemsIndexed(lines) { i, line ->
                         val on = i == current
@@ -91,17 +93,19 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
                                 .fillMaxWidth()
                                 .clickable { onSeek(line.timeMs) },
                             textAlign = TextAlign.Center,
-                            style = if (on) MaterialTheme.typography.titleMedium
-                            else MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyLarge,
                             fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
                             color = if (on) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = { LyricsStore.delete(ui.mediaId) }) { Text("Apagar letra") }
+                    TextButton(onClick = { follow = !follow }) {
+                        Text(if (follow) "Seguindo a música" else "Seguir a música")
+                    }
                     TextButton(onClick = { options = true }) { Text("Opções") }
+                    TextButton(onClick = { LyricsStore.delete(ui.mediaId) }) { Text("Apagar") }
                 }
             }
 
@@ -237,9 +241,9 @@ private fun LyricsOptionsDialog(onDismiss: () -> Unit) {
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("Gerar sozinha na primeira vez", style = MaterialTheme.typography.bodyMedium)
+                        Text("Buscar a letra automaticamente", style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "Só funciona com o modelo já baixado.",
+                            "Busca no LRCLIB e salva no celular, sem você precisar tocar em nada.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
