@@ -16,6 +16,18 @@ object AppPrefs {
             ?.takeIf { it.isNotBlank() }
             ?: DEFAULT_SHARE_URL
 
+    private const val KEY_SKIN = "player_skin"
+
+    /** Skin do player escolhida pelo usuário ("vinil" é a padrão). */
+    fun skin(context: Context): String =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            .getString(KEY_SKIN, null) ?: "vinil"
+
+    fun setSkin(context: Context, id: String) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            .edit().putString(KEY_SKIN, id).apply()
+    }
+
     fun setShareUrl(context: Context, url: String) {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
             .edit().putString(KEY_SHARE, url.trim()).apply()

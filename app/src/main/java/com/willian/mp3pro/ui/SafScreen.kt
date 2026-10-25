@@ -1,0 +1,241 @@
+package com.willian.mp3pro.ui
+
+import android.content.Intent
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.willian.mp3pro.MainViewModel
+
+/** Botão para escolher uma pasta do celular e atalhos para as pastas já escolhidas. */
+@Composable
+fun SafHeader(vm: MainViewModel) {
+    val context = LocalContext.current
+    val saf by vm.saf.collectAsStateWithLifecycle()
+
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {
+            }
+            vm.addSafFolder(uri)
+        }
+    }
+
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Button(onClick = { picker.launch(null) }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Filled.FolderOpen, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Escolher pasta do celular")
+        }
+        if (saf.roots.isEmpty()) {
+            Text(
+                "Procure e selecione a pasta onde estão suas músicas.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+        } else {
+            Text(
+                "Suas pastas",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(saf.roots, key = { it.treeUri }) { root ->
+                    AssistChip(
+                        onClick = { vm.openSafRoot(root) },
+                        label = { Text(root.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        leadingIcon = { Icon(Icons.Filled.Folder, contentDescription = null) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Navegação dentro de uma pasta escolhida: subpastas e músicas. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SafBrowser(vm: MainViewModel) {
+    val saf by vm.saf.collectAsStateWithLifecycle()
+    val playing by vm.player.ui.collectAsStateWithLifecycle()
+    var confirmRemove by remember { mutableStateOf(false) }
+
+    BackHandler { vm.safUp() }
+
+    val atRoot = saf.crumbs.size <= 1
+
+    Column(Modifier.fillMaxSize()) {
+        TopAppBar(
+            title = {
+                Text(
+                    saf.crumbs.lastOrNull()?.name.orEmpty(),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+            },
+            navigationIcon = {
+                IconButton(onClick = { vm.safUp() }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                }
+            },
+            actions = {
+                if (saf.tracks.isNotEmpty()) {
+                    IconButton(onClick = { vm.playSafTracks() }) {
+                        Icon(Icons.Filled.PlayArrow, contentDescription = "Tocar as músicas desta pasta")
+                    }
+                }
+                if (atRoot) {
+                    IconButton(onClick = { confirmRemove = true }) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Tirar esta pasta da lista")
+                    }
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+        )
+
+        when {
+            saf.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+
+            saf.error != null -> Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(saf.error.orEmpty(), color = MaterialTheme.colorScheme.error)
+            }
+
+            saf.folders.isEmpty() && saf.tracks.isEmpty() -> Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Nenhuma música nesta pasta.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            else -> LazyColumn(Modifier.fillMaxSize()) {
+                items(saf.folders, key = { "d:" + it.docId }) { folder ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { vm.openSafFolder(folder) }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            folder.name, modifier = Modifier.weight(1f),
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Icon(
+                            Icons.Filled.ChevronRight, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                }
+                items(saf.tracks, key = { it.path }) { entry ->
+                    val current = playing.mediaId == entry.path
+                    val accent = if (current) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { vm.play(saf.tracks, entry) }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.MusicNote, contentDescription = null, tint = accent)
+                        Spacer(Modifier.width(16.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                entry.title, color = accent, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            val sub = listOf(entry.artist, formatSize(entry.size))
+                                .filter { it.isNotEmpty() }.joinToString(" · ")
+                            if (sub.isNotEmpty()) {
+                                Text(
+                                    sub, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                }
+            }
+        }
+    }
+
+    if (confirmRemove) {
+        AlertDialog(
+            onDismissRequest = { confirmRemove = false },
+            title = { Text("Tirar pasta da lista?") },
+            text = { Text("Os arquivos não são apagados; a pasta só deixa de aparecer no app.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRemove = false
+                    saf.root?.let { vm.removeSafFolder(it) }
+                }) { Text("Tirar") }
+            },
+            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text("Cancelar") } }
+        )
+    }
+}

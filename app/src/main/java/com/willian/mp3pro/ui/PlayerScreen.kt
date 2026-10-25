@@ -33,6 +33,16 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.platform.LocalContext
+import com.willian.mp3pro.data.AppPrefs
+import com.willian.mp3pro.ui.skins.PlayerSkin
+import com.willian.mp3pro.ui.skins.SkinStage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -56,6 +66,10 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
     val ui by controller.ui.collectAsStateWithLifecycle()
     BackHandler { onClose() }
 
+    val context = LocalContext.current
+    var skin by remember { mutableStateOf(PlayerSkin.fromId(AppPrefs.skin(context))) }
+    var skinMenu by remember { mutableStateOf(false) }
+
     var dragging by remember { mutableStateOf(false) }
     var dragValue by remember { mutableFloatStateOf(0f) }
     val duration = ui.durationMs.coerceAtLeast(1L).toFloat()
@@ -65,33 +79,49 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             IconButton(onClick = onClose) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Fechar", modifier = Modifier.size(32.dp))
+            }
+            Spacer(Modifier.weight(1f))
+            Box {
+                IconButton(onClick = { skinMenu = true }) {
+                    Icon(Icons.Filled.Palette, contentDescription = "Trocar o visual do player")
+                }
+                DropdownMenu(expanded = skinMenu, onDismissRequest = { skinMenu = false }) {
+                    PlayerSkin.entries.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.label) },
+                            leadingIcon = {
+                                if (option == skin) Icon(Icons.Filled.Check, contentDescription = null)
+                            },
+                            onClick = {
+                                skin = option
+                                AppPrefs.setSkin(context, option.id)
+                                skinMenu = false
+                            }
+                        )
+                    }
+                }
             }
         }
 
         Spacer(Modifier.height(16.dp))
-        Box(
-            Modifier
-                .fillMaxWidth(0.82f)
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(24.dp))
-                .background(
-                    Brush.linearGradient(
-                        listOf(Color(0xFF0891B2), Color(0xFF6D28D9))
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Filled.MusicNote, contentDescription = null,
-                tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(96.dp)
-            )
-        }
+        SkinStage(
+            skin = skin,
+            ui = ui,
+            onPrevious = { controller.previous() },
+            onToggle = { controller.togglePlay() },
+            onNext = { controller.next() },
+            modifier = Modifier.fillMaxWidth(0.92f)
+        )
 
         Spacer(Modifier.height(28.dp))
         Text(

@@ -51,9 +51,16 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.willian.mp3pro.MainViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Aba "Celular": uma pasta escolhida pelo usuário, se estiver aberta; senão, o início. */
 @Composable
 fun LocalScreen(vm: MainViewModel) {
+    val saf by vm.saf.collectAsStateWithLifecycle()
+    if (saf.root != null) SafBrowser(vm) else PhoneHome(vm)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PhoneHome(vm: MainViewModel) {
     val context = LocalContext.current
     val ui by vm.local.collectAsStateWithLifecycle()
     val playing by vm.player.ui.collectAsStateWithLifecycle()
@@ -102,6 +109,8 @@ fun LocalScreen(vm: MainViewModel) {
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
         )
+
+        if (!inSubfolder) SafHeader(vm)
 
         when {
             !granted -> Column(

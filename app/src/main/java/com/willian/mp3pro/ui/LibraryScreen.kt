@@ -22,11 +22,15 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,6 +42,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,8 +60,10 @@ import com.willian.mp3pro.data.RemoteEntry
 fun LibraryScreen(
     vm: MainViewModel,
     onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
     onShowDownloads: () -> Unit
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
     val lib by vm.library.collectAsStateWithLifecycle()
     val downloaded by Offline.downloaded.collectAsStateWithLifecycle()
     val progress by Offline.progress.collectAsStateWithLifecycle()
@@ -85,8 +94,28 @@ fun LibraryScreen(
                 IconButton(onClick = { vm.refresh() }) {
                     Icon(Icons.Filled.Refresh, contentDescription = "Atualizar")
                 }
-                IconButton(onClick = onOpenSettings) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Link da pasta")
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Mais opções")
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Link da pasta do OneDrive") },
+                            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                            onClick = {
+                                menuOpen = false
+                                onOpenSettings()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Sobre") },
+                            leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
+                            onClick = {
+                                menuOpen = false
+                                onOpenAbout()
+                            }
+                        )
+                    }
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)

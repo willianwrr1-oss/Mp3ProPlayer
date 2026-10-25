@@ -1,6 +1,7 @@
 package com.willian.mp3pro.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,10 +13,16 @@ import java.security.MessageDigest
 /**
  * Músicas baixadas para ouvir sem internet. Os arquivos ficam na pasta privada
  * do app, com um índice em JSON para listar sem precisar de rede.
+ *
+ * Guarda também o total já baixado ao longo do tempo (histórico), que não diminui
+ * quando uma música é removida; o total atual é a soma do que está na pasta agora.
  */
 object Offline {
+    private const val KEY_LIFETIME = "lifetime_bytes"
+
     private lateinit var dir: File
     private lateinit var indexFile: File
+    private lateinit var stats: SharedPreferences
     private var started = false
 
     private val _downloaded = MutableStateFlow<Map<String, DownloadedTrack>>(emptyMap())
@@ -25,13 +32,26 @@ object Offline {
     private val _progress = MutableStateFlow<Map<String, Int>>(emptyMap())
     val progress: StateFlow<Map<String, Int>> = _progress.asStateFlow()
 
+    /** Total de bytes já baixados desde sempre (histórico), mesmo das músicas removidas depois. */
+    private val _lifetime = MutableStateFlow(0L)
+    val lifetimeBytes: StateFlow<Long> = _lifetime.asStateFlow()
+
     @Synchronized
     fun init(context: Context) {
         if (started) return
         started = true
-        dir = File(context.applicationContext.filesDir, "music").apply { mkdirs() }
+        val app = context.applicationContext
+        dir = File(app.filesDir, "music").apply { mkdirs() }
         indexFile = File(dir, "index.json")
+        stats = app.getSharedPreferences("offline_stats", Context.MODE_PRIVATE)
         _downloaded.value = readIndex()
+
+        // Quem já tinha músicas baixadas antes desta versão começa com o que existe hoje.
+        val atual = _downloaded.value.values.sumOf { it.size }
+        val salvo = stats.getLong(KEY_LIFETIME, -1L)
+        val inicio = if (salvo < 0) atual else maxOf(salvo, atual)
+        _lifetime.value = inicio
+        if (salvo != inicio) stats.edit().putLong(KEY_LIFETIME, inicio).apply()
     }
 
     fun targetFile(path: String, extension: String): File = File(dir, "${sha1(path)}.$extension")
@@ -50,14 +70,24 @@ object Offline {
         novo[path] = DownloadedTrack(path, name, size, file.name)
         _downloaded.value = novo
         writeIndex(novo)
+
+        val total = _lifetime.value + size
+        _lifetime.value = total
+        stats.edit().putLong(KEY_LIFETIME, total).apply()
     }
 
+    fun remove(path: String) = removeAll(listOf(path))
+
+    /** Apaga várias músicas de uma vez. O histórico de downloads não é alterado. */
     @Synchronized
-    fun remove(path: String) {
+    fun removeAll(paths: Collection<String>) {
         val atual = _downloaded.value
-        val t = atual[path] ?: return
-        File(dir, t.fileName).delete()
-        val novo = atual.toMutableMap().apply { remove(path) }
+        val novo = atual.toMutableMap()
+        for (p in paths) {
+            val t = atual[p] ?: continue
+            File(dir, t.fileName).delete()
+            novo.remove(p)
+        }
         _downloaded.value = novo
         writeIndex(novo)
     }

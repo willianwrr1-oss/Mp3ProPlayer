@@ -1,6 +1,8 @@
 package com.willian.mp3pro
 
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.willian.mp3pro.data.AppPrefs
@@ -11,13 +13,18 @@ import com.willian.mp3pro.data.OneDriveClient
 import com.willian.mp3pro.data.OneDriveException
 import com.willian.mp3pro.data.Offline
 import com.willian.mp3pro.data.RemoteEntry
+import com.willian.mp3pro.data.SafCrumb
+import com.willian.mp3pro.data.SafLibrary
+import com.willian.mp3pro.data.SafRoot
 import com.willian.mp3pro.player.PlayerController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class LibraryUi(
     val path: String = "",
@@ -39,6 +46,19 @@ data class LocalUi(
     val error: String? = null
 )
 
+data class SafUi(
+    /** Pastas que o usuário já escolheu. */
+    val roots: List<SafRoot> = emptyList(),
+    /** Pasta escolhida que está aberta no momento (nula = nenhuma). */
+    val root: SafRoot? = null,
+    /** Caminho dentro da pasta aberta; o último item é a pasta atual. */
+    val crumbs: List<SafCrumb> = emptyList(),
+    val folders: List<SafCrumb> = emptyList(),
+    val tracks: List<RemoteEntry> = emptyList(),
+    val loading: Boolean = false,
+    val error: String? = null
+)
+
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val player = PlayerController(app)
@@ -54,6 +74,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _local = MutableStateFlow(LocalUi())
     val local: StateFlow<LocalUi> = _local.asStateFlow()
     private var allLocal: List<LocalTrack> = emptyList()
+
+    private val _saf = MutableStateFlow(SafUi(roots = SafLibrary.load(app)))
+    val saf: StateFlow<SafUi> = _saf.asStateFlow()
 
     init {
         player.connect()
@@ -114,6 +137,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun removeDownload(path: String) = Offline.remove(path)
 
+    fun removeDownloads(paths: Collection<String>) = Offline.removeAll(paths)
+
     // ------------------------------------------------------------------ músicas do celular
 
     /** Procura as músicas do aparelho (precisa da permissão de áudio já concedida). */
@@ -157,6 +182,76 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             loaded = true,
             total = total
         )
+    }
+
+    // ------------------------------------------------------------------ pastas escolhidas pelo usuário
+
+    /** Guarda a pasta escolhida no seletor do Android e já a abre. */
+    fun addSafFolder(uri: Uri) {
+        viewModelScope.launch {
+            val tree = uri.toString()
+            val nome = withContext(Dispatchers.IO) { SafLibrary.displayName(getApplication(), tree) }
+            val root = SafRoot(tree, nome)
+            val roots = _saf.value.roots.filter { it.treeUri != tree } + root
+            SafLibrary.save(getApplication(), roots)
+            _saf.value = _saf.value.copy(roots = roots)
+            openSafRoot(root)
+        }
+    }
+
+    fun removeSafFolder(root: SafRoot) {
+        val roots = _saf.value.roots.filter { it.treeUri != root.treeUri }
+        SafLibrary.save(getApplication(), roots)
+        try {
+            getApplication<Application>().contentResolver.releasePersistableUriPermission(
+                Uri.parse(root.treeUri), Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (_: Exception) {
+        }
+        _saf.value = _saf.value.copy(roots = roots)
+        closeSaf()
+    }
+
+    fun openSafRoot(root: SafRoot) =
+        loadSaf(root, listOf(SafCrumb(SafLibrary.rootDocId(root.treeUri), root.name)))
+
+    fun openSafFolder(folder: SafCrumb) {
+        val s = _saf.value
+        val root = s.root ?: return
+        loadSaf(root, s.crumbs + folder)
+    }
+
+    fun safUp() {
+        val s = _saf.value
+        val root = s.root ?: return
+        if (s.crumbs.size > 1) loadSaf(root, s.crumbs.dropLast(1)) else closeSaf()
+    }
+
+    fun closeSaf() {
+        _saf.value = _saf.value.copy(
+            root = null, crumbs = emptyList(), folders = emptyList(),
+            tracks = emptyList(), loading = false, error = null
+        )
+    }
+
+    private fun loadSaf(root: SafRoot, crumbs: List<SafCrumb>) {
+        _saf.value = _saf.value.copy(root = root, crumbs = crumbs, loading = true, error = null)
+        viewModelScope.launch {
+            try {
+                val (pastas, musicas) = SafLibrary.list(getApplication(), root, crumbs.last().docId)
+                _saf.value = _saf.value.copy(folders = pastas, tracks = musicas, loading = false)
+            } catch (e: Exception) {
+                _saf.value = _saf.value.copy(
+                    loading = false,
+                    error = "Não foi possível abrir esta pasta. Tente escolhê-la de novo."
+                )
+            }
+        }
+    }
+
+    fun playSafTracks() {
+        val musicas = _saf.value.tracks
+        if (musicas.isNotEmpty()) player.playQueue(musicas, 0)
     }
 
     /** Toca todas as músicas da pasta [dir], incluindo as subpastas. */

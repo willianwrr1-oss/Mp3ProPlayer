@@ -9,6 +9,10 @@ fun formatTime(ms: Long): String {
     return String.format(Locale.US, "%d:%02d", m, s)
 }
 
+/** Sempre em MB, com separador de milhar (ex.: 1.234,5 MB). */
+fun formatMb(bytes: Long): String =
+    String.format(Locale("pt", "BR"), "%,.1f MB", bytes / (1024.0 * 1024.0))
+
 fun formatSize(bytes: Long): String {
     if (bytes <= 0) return ""
     val mb = bytes / (1024.0 * 1024.0)

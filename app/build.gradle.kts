@@ -1,3 +1,7 @@
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -15,7 +19,13 @@ android {
         // No GitHub, o número da execução sobe a cada compilação: o Android só atualiza
         // por cima quando o versionCode é maior ou igual ao instalado.
         versionCode = maxOf(2, System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 2)
-        versionName = "1.1.0"
+        versionName = "1.4.0"
+
+        // Data da compilação, mostrada em "Sobre" como a data da última atualização.
+        buildConfigField(
+            "String", "BUILD_DATE",
+            "\"${LocalDate.now(ZoneId.of("America/Sao_Paulo")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}\""
+        )
     }
 
     signingConfigs {
@@ -51,6 +61,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     lint {
@@ -86,4 +97,6 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    // Futures usados na biblioteca de mídia (Android Auto).
+    implementation("com.google.guava:guava:33.2.1-android")
 }

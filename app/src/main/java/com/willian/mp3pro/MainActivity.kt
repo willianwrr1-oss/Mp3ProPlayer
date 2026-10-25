@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.willian.mp3pro.ui.AboutDialog
 import com.willian.mp3pro.ui.DownloadsScreen
 import com.willian.mp3pro.ui.EqualizerScreen
 import com.willian.mp3pro.ui.LibraryScreen
@@ -58,6 +59,7 @@ private fun AppRoot(vm: MainViewModel) {
     var tab by remember { mutableIntStateOf(0) }
     var showPlayer by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showAbout by remember { mutableStateOf(false) }
     val shareUrl by vm.shareUrl.collectAsStateWithLifecycle()
 
     // Android 13+: pede permissão para mostrar a notificação de reprodução.
@@ -103,6 +105,7 @@ private fun AppRoot(vm: MainViewModel) {
                     0 -> LibraryScreen(
                         vm = vm,
                         onOpenSettings = { showSettings = true },
+                        onOpenAbout = { showAbout = true },
                         onShowDownloads = { tab = 1 }
                     )
                     1 -> DownloadsScreen(vm)
@@ -115,6 +118,10 @@ private fun AppRoot(vm: MainViewModel) {
         if (showPlayer) {
             PlayerScreen(controller = vm.player, onClose = { showPlayer = false })
         }
+    }
+
+    if (showAbout) {
+        AboutDialog(onDismiss = { showAbout = false })
     }
 
     if (showSettings) {
