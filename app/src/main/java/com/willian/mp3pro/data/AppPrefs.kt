@@ -39,6 +39,35 @@ object AppPrefs {
             .edit().putBoolean(KEY_THEME, dark).apply()
     }
 
+    // ---- Letra por IA -------------------------------------------------------------
+    private const val KEY_WHISPER = "whisper_size"
+    private const val KEY_LANG = "lyrics_language"
+    private const val KEY_AUTO_LYRICS = "lyrics_auto"
+
+    /** Tamanho do modelo Whisper: "tiny" ou "base" (padrão). */
+    fun whisperSize(context: Context): String =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString(KEY_WHISPER, null) ?: "base"
+
+    fun setWhisperSize(context: Context, id: String) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putString(KEY_WHISPER, id).apply()
+    }
+
+    /** Idioma das letras: "auto" (detecta) ou código como "pt", "en", "es". */
+    fun lyricsLanguage(context: Context): String =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString(KEY_LANG, null) ?: "auto"
+
+    fun setLyricsLanguage(context: Context, code: String) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putString(KEY_LANG, code).apply()
+    }
+
+    /** Gerar a letra sozinho na primeira vez que a música tocar (só com o modelo já baixado). */
+    fun autoLyrics(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_LYRICS, false)
+
+    fun setAutoLyrics(context: Context, value: Boolean) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_AUTO_LYRICS, value).apply()
+    }
+
     fun setShareUrl(context: Context, url: String) {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
             .edit().putString(KEY_SHARE, url.trim()).apply()

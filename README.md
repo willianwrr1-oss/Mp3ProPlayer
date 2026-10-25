@@ -58,6 +58,19 @@ Por ser um recurso não documentado, a Microsoft pode mudá-lo no futuro. O plan
 
 Os links de download do OneDrive expiram em cerca de uma hora, por isso o app pede um link novo na hora de tocar ou baixar cada música.
 
+## Letra por IA (Whisper no celular)
+
+No player, o ícone de letra (ao lado do de tema) troca a imagem do tocador pelo painel de letra.
+
+1. Toque em "Gerar letra com IA". Na primeira vez o app baixa o modelo (115 MB no "Leve" ou 200 MB no "Equilibrado"), do repositório oficial do sherpa-onnx no GitHub. Use Wi-Fi.
+2. O app lê o áudio, transcreve em trechos de cerca de 12 s e salva a letra, com os tempos, no celular. Leva alguns minutos por música; mantenha o app aberto.
+3. Nas próximas vezes a letra abre na hora e a linha atual fica em destaque. Tocar numa linha pula para esse ponto da música.
+4. "Opções da IA": idioma (automático, português, inglês, espanhol), tamanho do modelo e "gerar sozinha na primeira vez" (só com o modelo já baixado).
+
+Limites: música cantada com muito instrumento gera erros; escolher o idioma certo ajuda. Instrumentais ficam sem letra. Só celulares de 64 bits.
+
+Se o build falhar por causa da dependência `sherpa-onnx-android`, troque `1.+` em `app/build.gradle.kts` pela versão mais nova listada em central.sonatype.com.
+
 ## Android Auto
 
 1. Instale o app e abra uma vez. Na aba "Celular", conceda a permissão "Música e áudio" se quiser ver as músicas do aparelho no carro.

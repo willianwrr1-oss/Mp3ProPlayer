@@ -29,6 +29,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.willian.mp3pro.data.AppPrefs
+import com.willian.mp3pro.lyrics.LyricsJobs
+import com.willian.mp3pro.lyrics.LyricsStore
+import com.willian.mp3pro.lyrics.WhisperModel
+import com.willian.mp3pro.lyrics.WhisperSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.willian.mp3pro.ui.AboutDialog
 import com.willian.mp3pro.ui.DownloadsScreen
@@ -68,6 +74,19 @@ private fun AppRoot(vm: MainViewModel) {
     ) { }
     LaunchedEffect(Unit) {
         notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    // Letra automática: na primeira vez que uma música toca, se o usuário ligou a opção
+    // e o modelo já está no celular.
+    val context = LocalContext.current
+    val playing by vm.player.ui.collectAsStateWithLifecycle()
+    LaunchedEffect(playing.mediaId) {
+        val id = playing.mediaId
+        if (id.isNotEmpty() && AppPrefs.autoLyrics(context) && !LyricsStore.has(id) &&
+            WhisperModel.isReady(context, WhisperSize.fromId(AppPrefs.whisperSize(context)))
+        ) {
+            LyricsJobs.start(context, id)
+        }
     }
 
     Box(Modifier.fillMaxSize()) {

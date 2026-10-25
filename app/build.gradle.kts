@@ -19,7 +19,11 @@ android {
         // No GitHub, o número da execução sobe a cada compilação: o Android só atualiza
         // por cima quando o versionCode é maior ou igual ao instalado.
         versionCode = maxOf(2, System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 2)
-        versionName = "1.4.0"
+        versionName = "1.5.0"
+
+        // A biblioteca de voz traz código nativo; só o arquivo para celulares de 64 bits
+        // (todos os modernos) é incluído, para o APK não crescer à toa.
+        ndk { abiFilters += listOf("arm64-v8a") }
 
         // Data da compilação, mostrada em "Sobre" como a data da última atualização.
         buildConfigField(
@@ -71,7 +75,7 @@ android {
 
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/{AL2.0,LGPL2.1,LICENSE,LICENSE.txt,NOTICE,NOTICE.txt,DEPENDENCIES}"
         }
     }
 }
@@ -99,4 +103,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     // Futures usados na biblioteca de mídia (Android Auto).
     implementation("com.google.guava:guava:33.2.1-android")
+    // Letra por IA: Whisper rodando no celular (sherpa-onnx) e leitor do pacote do modelo.
+    // Se o build reclamar desta versão, troque pela mais nova de
+    // https://central.sonatype.com/artifact/com.k2fsa.sherpa.onnx/sherpa-onnx-android
+    implementation("com.k2fsa.sherpa.onnx:sherpa-onnx-android:1.+")
+    implementation("org.apache.commons:commons-compress:1.26.2")
 }

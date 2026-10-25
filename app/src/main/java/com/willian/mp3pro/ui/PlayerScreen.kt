@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Brightness6
+import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -79,6 +80,7 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
     var skin by remember { mutableStateOf(PlayerSkin.fromId(AppPrefs.skin(context))) }
     var skinMenu by remember { mutableStateOf(false) }
     var themeMenu by remember { mutableStateOf(false) }
+    var showLyrics by remember { mutableStateOf(false) }
 
     var dragging by remember { mutableStateOf(false) }
     var dragValue by remember { mutableFloatStateOf(0f) }
@@ -101,6 +103,13 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Fechar", modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onBackground)
             }
             Spacer(Modifier.weight(1f))
+            IconButton(onClick = { showLyrics = !showLyrics }) {
+                Icon(
+                    Icons.Filled.Lyrics, contentDescription = "Letra da música",
+                    tint = if (showLyrics) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onBackground
+                )
+            }
             Box {
                 IconButton(onClick = { themeMenu = true }) {
                     Icon(
@@ -154,14 +163,22 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
         }
 
         Spacer(Modifier.height(16.dp))
-        SkinStage(
-            skin = skin,
-            ui = ui,
-            onPrevious = { controller.previous() },
-            onToggle = { controller.togglePlay() },
-            onNext = { controller.next() },
-            modifier = Modifier.fillMaxWidth(0.92f)
-        )
+        if (showLyrics) {
+            LyricsPanel(
+                ui = ui,
+                onSeek = { controller.seekTo(it) },
+                modifier = Modifier.fillMaxWidth(0.92f)
+            )
+        } else {
+            SkinStage(
+                skin = skin,
+                ui = ui,
+                onPrevious = { controller.previous() },
+                onToggle = { controller.togglePlay() },
+                onNext = { controller.next() },
+                modifier = Modifier.fillMaxWidth(0.92f)
+            )
+        }
 
         Spacer(Modifier.height(28.dp))
         Text(
