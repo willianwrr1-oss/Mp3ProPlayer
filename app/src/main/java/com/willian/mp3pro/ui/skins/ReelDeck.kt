@@ -38,13 +38,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.sqrt
+import com.willian.mp3pro.audio.AudioMeter
 import com.willian.mp3pro.player.PlayerUi
 import com.willian.mp3pro.ui.formatTime
 
 /**
  * Gravador de rolo: dois carretéis grandes giram em sentido anti-horário e a fita passa de
- * um para o outro. Os dois mostradores analógicos são funcionais: o da esquerda marca o
- * tempo decorrido e o da direita o que falta. As teclas funcionam como as do cassete.
+ * um para o outro. À esquerda fica o medidor de nível (VU de LEDs, canais L e R, com marca
+ * de pico) e à direita o analisador de espectro de 8 faixas; os dois reagem ao áudio que
+ * está tocando. Abaixo de cada um, o tempo decorrido e o restante. Teclas como as do cassete.
  */
 @Composable
 fun ReelDeckSkin(
@@ -59,10 +62,13 @@ fun ReelDeckSkin(
         progressOf(ui), tween(500, easing = LinearEasing), label = "reel"
     )
 
+    val meters = rememberMeters(ui.isPlaying)
+
     BoxWithConstraints(modifier.aspectRatio(1f)) {
         val w = maxWidth
 
         Canvas(Modifier.fillMaxSize()) {
+            meters.tick.longValue // lido aqui para redesenhar a cada quadro
             val s = size.minDimension
             val p = progress.value
             val rot = -spin.floatValue
@@ -92,8 +98,27 @@ fun ReelDeckSkin(
             val packL = s * (0.09f + 0.095f * (1f - p))
             val packR = s * (0.09f + 0.095f * p)
 
+            // A fita é desenhada ANTES dos carretéis: ela sai de baixo do disco do carretel
+            // (sem atravessar a frente dele), passa pelo pino-guia e chega ao cabeçote.
+            val tape = Color(0xFF6B4A36)
+            val postL = Offset(s * 0.41f, s * 0.47f)
+            val postR = Offset(s * 0.59f, s * 0.47f)
+            val headL = Offset(s * 0.455f, s * 0.505f)
+            val headR = Offset(s * 0.545f, s * 0.505f)
+            fun tapeRun(c: Offset, pack: Float, post: Offset, head: Offset) {
+                val dx = post.x - c.x
+                val dy = post.y - c.y
+                val d = sqrt(dx * dx + dy * dy)
+                val from = Offset(c.x + dx / d * pack, c.y + dy / d * pack)
+                drawLine(tape, from, post, s * 0.008f, StrokeCap.Round)
+                drawLine(tape, post, head, s * 0.008f, StrokeCap.Round)
+            }
+            tapeRun(Offset(xl, cy), packL, postL, headL)
+            tapeRun(Offset(xr, cy), packR, postR, headR)
+
             fun reel(cx: Float, pack: Float) {
                 val c = Offset(cx, cy)
+                drawCircle(Color.Black.copy(alpha = 0.35f), rFlange * 1.03f, c + Offset(s * 0.004f, s * 0.008f))
                 drawCircle(Color(0xFF111316), rFlange, c)
                 drawCircle(Color(0xFF5A3C2B), pack, c)
                 drawCircle(Color(0xFF3B271C), pack, c, style = Stroke(s * 0.004f))
@@ -119,86 +144,119 @@ fun ReelDeckSkin(
             reel(xl, packL)
             reel(xr, packR)
 
-            // fita até o cabeçote
-            drawLine(
-                Color(0xFF5A3C2B), Offset(xl, cy + packL), Offset(s * 0.44f, s * 0.51f),
-                s * 0.006f, StrokeCap.Round
-            )
-            drawLine(
-                Color(0xFF5A3C2B), Offset(xr, cy + packR), Offset(s * 0.56f, s * 0.51f),
-                s * 0.006f, StrokeCap.Round
-            )
-            drawCircle(Color(0xFFB8BDC4), s * 0.011f, Offset(s * 0.41f, s * 0.47f))
-            drawCircle(Color(0xFFB8BDC4), s * 0.011f, Offset(s * 0.59f, s * 0.47f))
+            // pinos-guia e cabeçote
+            drawCircle(Color(0xFFB8BDC4), s * 0.012f, postL)
+            drawCircle(Color(0xFFB8BDC4), s * 0.012f, postR)
             drawRoundRect(
                 Color(0xFF1B1D20), topLeft = Offset(s * 0.44f, s * 0.495f),
                 size = Size(s * 0.12f, s * 0.04f), cornerRadius = CornerRadius(s * 0.008f)
             )
 
-            // mostradores analógicos
-            fun gauge(c: Offset, fraction: Float) {
-                val r = s * 0.105f
-                drawCircle(Color.Black.copy(alpha = 0.45f), r + s * 0.012f, c + Offset(s * 0.004f, s * 0.008f))
-                drawCircle(Color(0xFF1A1B1E), r + s * 0.012f, c)
-                drawCircle(
-                    Brush.radialGradient(
-                        listOf(Color(0xFFF3ECD8), Color(0xFFD6CDB2)), center = c, radius = r
-                    ),
-                    r, c
-                )
-                drawArc(
-                    Color(0xFF2B2B2B), -130f, 80f, false,
-                    Offset(c.x - r * 0.86f, c.y - r * 0.86f), Size(r * 1.72f, r * 1.72f),
-                    style = Stroke(s * 0.003f)
-                )
-                for (i in 0..10) {
-                    val a = degToRad(-130f + i * 8f)
-                    val outer = if (i % 5 == 0) 0.98f else 0.92f
-                    drawLine(
-                        if (i >= 8) Color(0xFFC0392B) else Color(0xFF2B2B2B),
-                        polar(c, r * 0.74f, a), polar(c, r * outer, a), s * 0.003f
-                    )
+            // ---- medidores de áudio ------------------------------------------------
+            val lv = meters.levels
+
+            fun segColor(frac: Float, lit: Boolean): Color {
+                val base = when {
+                    frac < 0.62f -> Color(0xFF3DDC84)
+                    frac < 0.85f -> Color(0xFFFFC53D)
+                    else -> Color(0xFFFF4D3D)
                 }
-                val na = degToRad(-130f + 80f * fraction.coerceIn(0f, 1f))
-                val tipN = polar(c, r * 0.92f, na)
-                drawLine(
-                    Color.Black.copy(alpha = 0.25f), c + Offset(s * 0.003f, s * 0.004f),
-                    tipN + Offset(s * 0.003f, s * 0.004f), s * 0.005f, StrokeCap.Round
-                )
-                drawLine(Color(0xFFB3261E), c, tipN, s * 0.005f, StrokeCap.Round)
-                drawCircle(Color(0xFF2B2B2B), s * 0.012f, c)
+                return if (lit) base else base.copy(alpha = 0.14f)
             }
-            gauge(Offset(s * 0.27f, s * 0.665f), p)
-            gauge(Offset(s * 0.73f, s * 0.665f), 1f - p)
+
+            fun panel(x0: Float) {
+                val y0 = s * 0.575f
+                val pw = s * 0.31f
+                val ph = s * 0.18f
+                val r = CornerRadius(s * 0.018f)
+                drawRoundRect(
+                    Color.Black.copy(alpha = 0.4f), Offset(x0 + s * 0.004f, y0 + s * 0.008f),
+                    Size(pw, ph), r
+                )
+                drawRoundRect(Color(0xFF0B0C0E), Offset(x0, y0), Size(pw, ph), r)
+                drawRoundRect(
+                    Color(0xFF4A4D53), Offset(x0, y0), Size(pw, ph), r, style = Stroke(s * 0.004f)
+                )
+            }
+
+            // esquerda: VU de LEDs (L em cima, R embaixo), com marca de pico
+            val xPanelL = s * 0.085f
+            panel(xPanelL)
+            run {
+                val segs = 16
+                val x0 = xPanelL + s * 0.05f
+                val width = s * 0.31f - s * 0.07f
+                val pitch = width / segs
+                val rowH = s * 0.045f
+                for (row in 0..1) {
+                    val y = s * 0.575f + s * 0.0325f + row * s * 0.07f
+                    val level = lv[row]
+                    val peakSeg = (meters.peaks[row] * segs).toInt().coerceIn(0, segs - 1)
+                    for (i in 0 until segs) {
+                        val frac = (i + 1f) / segs
+                        val lit = level >= frac - 0.5f / segs || (i == peakSeg && meters.peaks[row] > 0.03f)
+                        drawRect(
+                            segColor(frac, lit),
+                            Offset(x0 + i * pitch, y),
+                            Size(pitch * 0.78f, rowH)
+                        )
+                    }
+                }
+            }
+
+            // direita: analisador de espectro, 8 faixas x 8 LEDs
+            val xPanelR = s * 0.605f
+            panel(xPanelR)
+            run {
+                val rows = 8
+                val x0 = xPanelR + s * 0.02f
+                val colPitch = (s * 0.31f - s * 0.04f) / AudioMeter.BANDS
+                val top = s * 0.575f + s * 0.025f
+                val rowPitch = s * 0.13f / rows
+                for (b in 0 until AudioMeter.BANDS) {
+                    val level = lv[2 + b]
+                    for (i in 0 until rows) {
+                        val frac = (i + 1f) / rows
+                        val lit = level >= frac - 0.5f / rows
+                        drawRect(
+                            segColor(frac, lit),
+                            Offset(x0 + b * colPitch, top + (rows - 1 - i) * rowPitch),
+                            Size(colPitch * 0.78f, rowPitch * 0.78f)
+                        )
+                    }
+                }
+            }
         }
 
-        // tempos dentro dos mostradores
-        val faceW = w * 0.18f
+        // letras dos canais do VU
+        val letterSize = (w.value * 0.032f).sp
         Text(
-            formatTime(ui.positionMs),
-            color = Color(0xFF2B2B2B), fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold, fontSize = (w.value * 0.042f).sp,
-            textAlign = TextAlign.Center, maxLines = 1,
-            modifier = Modifier.offset(x = w * 0.27f - faceW / 2, y = w * 0.70f).width(faceW)
+            "L", color = Color(0xFFD3D6DB), fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold, fontSize = letterSize,
+            modifier = Modifier.offset(x = w * 0.1f, y = w * 0.61f)
         )
         Text(
-            "-" + formatTime((ui.durationMs - ui.positionMs).coerceAtLeast(0)),
-            color = Color(0xFF2B2B2B), fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold, fontSize = (w.value * 0.042f).sp,
-            textAlign = TextAlign.Center, maxLines = 1,
-            modifier = Modifier.offset(x = w * 0.73f - faceW / 2, y = w * 0.70f).width(faceW)
+            "R", color = Color(0xFFD3D6DB), fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold, fontSize = letterSize,
+            modifier = Modifier.offset(x = w * 0.1f, y = w * 0.68f)
         )
+
+        // tempos, em estilo de visor de LED, abaixo de cada medidor
+        val timeSize = (w.value * 0.034f).sp
+        val timeW = w * 0.34f
         Text(
-            "DECORRIDO",
-            color = Color(0xFFD3D6DB), fontSize = (w.value * 0.03f).sp,
+            "DECORRIDO " + formatTime(ui.positionMs),
+            color = Color(0xFFFFA03A), fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold, fontSize = timeSize,
             textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Clip,
-            modifier = Modifier.offset(x = w * 0.27f - w * 0.1f, y = w * 0.785f).width(w * 0.2f)
+            modifier = Modifier.offset(x = w * 0.24f - timeW / 2, y = w * 0.77f).width(timeW)
         )
         Text(
-            "RESTANTE",
-            color = Color(0xFFD3D6DB), fontSize = (w.value * 0.03f).sp,
+            "RESTANTE -" + formatTime((ui.durationMs - ui.positionMs).coerceAtLeast(0)),
+            color = Color(0xFFFFA03A), fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold, fontSize = timeSize,
             textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Clip,
-            modifier = Modifier.offset(x = w * 0.73f - w * 0.1f, y = w * 0.785f).width(w * 0.2f)
+            modifier = Modifier.offset(x = w * 0.76f - timeW / 2, y = w * 0.77f).width(timeW)
         )
 
         // luz de estado, no meio dos dois mostradores

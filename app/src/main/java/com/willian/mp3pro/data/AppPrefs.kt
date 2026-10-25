@@ -28,6 +28,17 @@ object AppPrefs {
             .edit().putString(KEY_SKIN, id).apply()
     }
 
+    private const val KEY_THEME = "theme_dark"
+
+    /** Visual do app: true = escuro (noturno, padrão), false = claro. */
+    fun darkTheme(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_THEME, true)
+
+    fun setDarkTheme(context: Context, dark: Boolean) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_THEME, dark).apply()
+    }
+
     fun setShareUrl(context: Context, url: String) {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
             .edit().putString(KEY_SHARE, url.trim()).apply()

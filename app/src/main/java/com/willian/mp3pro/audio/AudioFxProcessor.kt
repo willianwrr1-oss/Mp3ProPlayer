@@ -89,6 +89,7 @@ class AudioFxProcessor : BaseAudioProcessor() {
         val out = replaceOutputBuffer(frames * bytesPerFrame)
         val start = inputBuffer.position()
         inputBuffer.order(ByteOrder.nativeOrder())
+        AudioMeter.analyze(inputBuffer, start, frames, channels, sampleRate)
 
         if (!enabled) {
             for (i in 0 until frames * channels) {

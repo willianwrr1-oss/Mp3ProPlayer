@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -69,6 +70,7 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
     val context = LocalContext.current
     var skin by remember { mutableStateOf(PlayerSkin.fromId(AppPrefs.skin(context))) }
     var skinMenu by remember { mutableStateOf(false) }
+    var themeMenu by remember { mutableStateOf(false) }
 
     var dragging by remember { mutableStateOf(false) }
     var dragValue by remember { mutableFloatStateOf(0f) }
@@ -91,6 +93,36 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Fechar", modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onBackground)
             }
             Spacer(Modifier.weight(1f))
+            Box {
+                IconButton(onClick = { themeMenu = true }) {
+                    Icon(
+                        Icons.Filled.Brightness6, contentDescription = "Trocar entre visual escuro e claro",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                DropdownMenu(expanded = themeMenu, onDismissRequest = { themeMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Visual escuro (noturno)") },
+                        leadingIcon = {
+                            if (ThemeState.dark) Icon(Icons.Filled.Check, contentDescription = null)
+                        },
+                        onClick = {
+                            ThemeState.set(context, true)
+                            themeMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Visual claro") },
+                        leadingIcon = {
+                            if (!ThemeState.dark) Icon(Icons.Filled.Check, contentDescription = null)
+                        },
+                        onClick = {
+                            ThemeState.set(context, false)
+                            themeMenu = false
+                        }
+                    )
+                }
+            }
             Box {
                 IconButton(onClick = { skinMenu = true }) {
                     Icon(Icons.Filled.Palette, contentDescription = "Trocar o visual do player", tint = MaterialTheme.colorScheme.onBackground)
