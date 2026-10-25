@@ -62,7 +62,7 @@ Os links de download do OneDrive expiram em cerca de uma hora, por isso o app pe
 
 No player, o ícone de letra (ao lado do de tema) troca a imagem do tocador pelo painel de letra.
 
-1. Sozinho: na primeira vez que uma música toca (com o app aberto), o app já busca e salva a letra. Ou toque em "Buscar letra". O app procura a letra sincronizada no LRCLIB (lrclib.net, gratuito, sem chave) pelo título, artista e duração, e salva no celular.
+1. Sozinho: na primeira vez que uma música toca (com o app aberto), o app já busca e salva a letra. Ou toque em "Buscar letra". O app procura a letra pelo título, artista e duração, nesta ordem: LRCLIB (com tempos), NetEase (com tempos) e, por último, só o texto (LRCLIB ou lyrics.ovh). Se um serviço estiver fora do ar, passa para o próximo. Letras só em texto aparecem inteiras, sem destacar a linha atual.
 2. Nas próximas vezes a letra abre na hora, mesmo sem internet. A letra inteira fica na tela, com a linha atual em destaque; "Seguir a música" faz a lista acompanhar sozinha, e tocar numa linha pula para esse ponto.
 3. Funciona melhor com arquivos nomeados "Título - Artista".
 4. "Opções": desligue "Buscar a letra automaticamente" se preferir buscar só quando tocar no botão.

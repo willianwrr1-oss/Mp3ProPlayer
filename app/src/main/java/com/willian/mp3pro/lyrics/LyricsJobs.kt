@@ -87,8 +87,8 @@ object LyricsJobs {
         active: () -> Unit, onTemp: (File) -> Unit
     ) {
         // 0) letra pronta no LRCLIB: rápido e quase sempre mais correta
-        _state.value = LyricsJobState(mediaId, LyricsStage.FETCH, 0, "Buscando a letra no LRCLIB…")
-        val ready = LrcLib.fetch(title, artist, durationMs)
+        _state.value = LyricsJobState(mediaId, LyricsStage.FETCH, 0, "Buscando a letra…")
+        val ready = LyricsFinder.find(title, artist, durationMs)
         active()
         if (ready != null) {
             LyricsStore.save(mediaId, ready)
@@ -96,7 +96,7 @@ object LyricsJobs {
         }
         if (!WhisperEngine.AVAILABLE) {
             throw IOException(
-                "Não achei a letra desta música no LRCLIB. Confira se o nome do arquivo " +
+                "Não achei a letra desta música nas fontes consultadas. Confira se o nome do arquivo " +
                     "está como “Título - Artista”."
             )
         }

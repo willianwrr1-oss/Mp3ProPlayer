@@ -67,7 +67,20 @@ object LyricsStore {
 
     private val lrcLine = Regex("""^\[(\d+):(\d+)(?:[.:](\d+))?](.*)$""")
 
+    private const val PLAIN_MARK = "#plain"
+
+    /** Letra sem tempos: cada linha tem timeMs = -1. */
+    fun plain(text: String): List<LyricLine> =
+        text.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }
+            .map { LyricLine(-1L, it) }.toList()
+
+    fun isPlain(lines: List<LyricLine>): Boolean = lines.isNotEmpty() && lines.all { it.timeMs < 0 }
+
     fun parse(text: String): List<LyricLine> =
+        if (text.startsWith(PLAIN_MARK)) plain(text.substringAfter('\n', ""))
+        else parseSynced(text)
+
+    private fun parseSynced(text: String): List<LyricLine> =
         text.lineSequence().mapNotNull { raw ->
             val m = lrcLine.matchEntire(raw.trim()) ?: return@mapNotNull null
             val min = m.groupValues[1].toLong()
@@ -84,7 +97,8 @@ object LyricsStore {
         }.sortedBy { it.timeMs }.toList()
 
     fun format(lines: List<LyricLine>): String =
-        lines.joinToString("\n") {
+        if (isPlain(lines)) PLAIN_MARK + "\n" + lines.joinToString("\n") { it.text.replace('\n', ' ') }
+        else lines.joinToString("\n") {
             val total = it.timeMs.coerceAtLeast(0)
             val min = total / 60000
             val sec = (total / 1000) % 60

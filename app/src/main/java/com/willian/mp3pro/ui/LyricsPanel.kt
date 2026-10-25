@@ -74,11 +74,20 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
         when {
             lines != null -> {
                 // A letra inteira fica na tela; a linha atual só ganha destaque.
+                val plain = LyricsStore.isPlain(lines)
                 val position = ui.positionMs + 250
-                val current = lines.indexOfLast { it.timeMs <= position }.coerceAtLeast(0)
+                val current = if (plain) -1 else lines.indexOfLast { it.timeMs <= position }.coerceAtLeast(0)
                 val listState = rememberLazyListState()
                 LaunchedEffect(current, lines, follow) {
-                    if (follow) listState.animateScrollToItem((current - 3).coerceAtLeast(0))
+                    if (follow && current >= 0) listState.animateScrollToItem((current - 3).coerceAtLeast(0))
+                }
+                if (plain) {
+                    Text(
+                        "Letra sem tempos: a linha atual não é destacada.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(6.dp))
                 }
                 LazyColumn(
                     state = listState,
@@ -91,7 +100,7 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
                             line.text,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onSeek(line.timeMs) },
+                                .clickable(enabled = !plain) { onSeek(line.timeMs) },
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
@@ -101,8 +110,10 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = { follow = !follow }) {
-                        Text(if (follow) "Seguindo a música" else "Seguir a música")
+                    if (!plain) {
+                        TextButton(onClick = { follow = !follow }) {
+                            Text(if (follow) "Seguindo a música" else "Seguir a música")
+                        }
                     }
                     TextButton(onClick = { options = true }) { Text("Opções") }
                     TextButton(onClick = { LyricsStore.delete(ui.mediaId) }) { Text("Apagar") }
@@ -142,7 +153,7 @@ fun LyricsPanel(ui: PlayerUi, onSeek: (Long) -> Unit, modifier: Modifier = Modif
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "O app busca a letra sincronizada no LRCLIB (serviço gratuito) e guarda no " +
+                        "O app busca a letra em serviços gratuitos (LRCLIB e NetEase, com tempos; lyrics.ovh, só texto) e guarda no " +
                             "celular. Depois disso ela abre mesmo sem internet. Funciona melhor quando o " +
                             "arquivo se chama “Título - Artista”.",
                         style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center,
