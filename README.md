@@ -32,9 +32,11 @@ Se o repositório for público, esse link ficará visível no código. Como a pa
 
 ## Se a pasta não carregar
 
-A leitura anônima de pastas do OneDrive não é um recurso bem documentado pela Microsoft. O app tenta quatro caminhos de acesso e, se todos falharem, mostra "Detalhes técnicos" na tela de erro. Tire um print dessa tela e envie na conversa: com ela dá para ajustar só o módulo `OneDriveClient.kt`.
+A leitura anônima de pastas do OneDrive não é um recurso documentado pela Microsoft. Para links novos (`1drv.ms/f/c/...`), o app usa o mesmo token de visitante que o navegador usa para quem abre o link sem login; para links no formato antigo, usa o endereço `api.onedrive.com` como reserva. Se todos os caminhos falharem, a tela de erro mostra "Detalhes técnicos". Tire um print dessa tela e envie na conversa: com ela dá para ajustar só o módulo `OneDriveClient.kt`.
 
-O plano B, se o acesso anônimo não funcionar no seu caso, é registrar o app no Azure e entrar com login Microsoft.
+Por ser um recurso não documentado, a Microsoft pode mudá-lo no futuro. O plano B, nesse caso, é registrar o app no Azure e entrar com login Microsoft.
+
+Os links de download do OneDrive expiram em cerca de uma hora, por isso o app pede um link novo na hora de tocar ou baixar cada música.
 
 ## Estrutura
 

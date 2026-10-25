@@ -2,10 +2,12 @@ package com.willian.mp3pro.player
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.Uri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -17,6 +19,8 @@ import com.willian.mp3pro.R
 import com.willian.mp3pro.audio.AudioFxProcessor
 import com.willian.mp3pro.audio.FxStore
 import com.willian.mp3pro.data.Http
+import com.willian.mp3pro.data.OneDriveClient
+import java.io.IOException
 
 /**
  * Serviço de reprodução em segundo plano: mantém a música tocando com a tela
@@ -32,7 +36,18 @@ class PlaybackService : MediaSessionService() {
         FxStore.init(this)
 
         val renderers = FxRenderersFactory(this, AudioFxProcessor())
-        val dataSource = DefaultDataSource.Factory(this, OkHttpDataSource.Factory(Http.client))
+        val http = DefaultDataSource.Factory(this, OkHttpDataSource.Factory(Http.client))
+        // Troca o endereço interno "onedrive://" pelo link real (e novo) na hora de tocar.
+        val dataSource = ResolvingDataSource.Factory(http) { spec ->
+            if (spec.uri.scheme == OneDriveClient.SCHEME) {
+                val caminho = spec.uri.getQueryParameter("p")
+                    ?: throw IOException("caminho da música ausente")
+                val real = OneDriveClient.get(applicationContext).downloadUrl(caminho)
+                spec.withUri(Uri.parse(real))
+            } else {
+                spec
+            }
+        }
 
         val player = ExoPlayer.Builder(this, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))

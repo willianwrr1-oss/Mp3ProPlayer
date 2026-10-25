@@ -29,8 +29,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val player = PlayerController(app)
 
-    private var client = OneDriveClient(AppPrefs.shareUrl(app))
-
     private val _shareUrl = MutableStateFlow(AppPrefs.shareUrl(app))
     val shareUrl: StateFlow<String> = _shareUrl.asStateFlow()
 
@@ -55,7 +53,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _library.value = _library.value.copy(path = path, loading = true, error = null, details = emptyList())
         loadJob = viewModelScope.launch {
             try {
-                val list = client.list(path)
+                val list = OneDriveClient.get(getApplication()).list(path)
                 _library.value = LibraryUi(path = path, entries = list)
             } catch (e: OneDriveException) {
                 _library.value = LibraryUi(
@@ -103,7 +101,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (limpo.isEmpty()) return
         AppPrefs.setShareUrl(getApplication(), limpo)
         _shareUrl.value = limpo
-        client = OneDriveClient(limpo)
         load("")
     }
 

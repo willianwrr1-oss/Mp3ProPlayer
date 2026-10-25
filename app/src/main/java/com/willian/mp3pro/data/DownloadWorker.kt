@@ -22,17 +22,16 @@ class DownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
     companion object {
         private const val K_PATH = "path"
         private const val K_NAME = "name"
-        private const val K_URL = "url"
         private const val K_EXT = "ext"
 
         fun enqueue(context: Context, entry: RemoteEntry) {
-            val url = entry.contentUrl ?: return
+            if (entry.isFolder) return
             Offline.setProgress(entry.path, 0)
             val request = OneTimeWorkRequestBuilder<DownloadWorker>()
                 .setInputData(
                     workDataOf(
                         K_PATH to entry.path, K_NAME to entry.name,
-                        K_URL to url, K_EXT to entry.extension
+                        K_EXT to entry.extension
                     )
                 )
                 .setConstraints(
@@ -48,13 +47,14 @@ class DownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
         Offline.init(applicationContext)
         val path = inputData.getString(K_PATH) ?: return@withContext Result.failure()
         val name = inputData.getString(K_NAME) ?: return@withContext Result.failure()
-        val url = inputData.getString(K_URL) ?: return@withContext Result.failure()
         val ext = inputData.getString(K_EXT) ?: "mp3"
 
         val target = Offline.targetFile(path, ext)
         val temp = Offline.tempFile(path)
 
         try {
+            // Os links de download do OneDrive expiram: pega um novo na hora de baixar.
+            val url = OneDriveClient.get(applicationContext).downloadUrl(path)
             val req = Request.Builder().url(url).build()
             Http.client.newCall(req).execute().use { resp ->
                 if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
