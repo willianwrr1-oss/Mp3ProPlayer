@@ -1,0 +1,37 @@
+name: Gerar APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Instalar o Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Preparar o Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Preparar o Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Compilar o APK
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Publicar o APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mp3ProPlayer-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
