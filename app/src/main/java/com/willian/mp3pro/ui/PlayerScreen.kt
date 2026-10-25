@@ -1,6 +1,14 @@
 package com.willian.mp3pro.ui
 
 import androidx.activity.compose.BackHandler
+import android.content.Context
+import android.media.AudioManager
+import androidx.compose.material.icons.automirrored.filled.VolumeDown
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -234,6 +242,53 @@ fun PlayerScreen(controller: PlayerController, onClose: () -> Unit) {
                 )
             }
         }
+
+        Spacer(Modifier.height(20.dp))
+        VolumeBar()
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+/** Barra de volume: controla o volume de mídia do aparelho, o mesmo dos botões físicos. */
+@Composable
+private fun VolumeBar() {
+    val context = LocalContext.current
+    val audio = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    val max = remember { audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1) }
+    var volume by remember { mutableFloatStateOf(audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()) }
+    var touching by remember { mutableStateOf(false) }
+
+    // Acompanha mudanças feitas pelos botões físicos enquanto a tela está aberta.
+    LaunchedEffect(Unit) {
+        while (true) {
+            if (!touching) volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()
+            delay(400)
+        }
+    }
+
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            if (volume <= 0f) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeDown,
+            contentDescription = "Volume",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Slider(
+            value = volume,
+            onValueChange = {
+                touching = true
+                volume = it
+                audio.setStreamVolume(AudioManager.STREAM_MUSIC, it.roundToInt(), 0)
+            },
+            onValueChangeFinished = { touching = false },
+            valueRange = 0f..max.toFloat(),
+            steps = (max - 1).coerceAtLeast(0),
+            modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+        )
+        Icon(
+            Icons.AutoMirrored.Filled.VolumeUp,
+            contentDescription = "Volume máximo",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
